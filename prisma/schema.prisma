@@ -1,0 +1,63 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Job {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String
+  description String?
+  department  String
+  status      JobStatus @default(DRAFT)
+  salaryMin   Int      @map("salary_min")
+  salaryMax   Int      @map("salary_max")
+  currency    String   @default("IDR")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  
+  // Application form configuration (JSON)
+  applicationForm Json? @map("application_form")
+  
+  // Relations
+  applications Application[]
+  
+  @@map("jobs")
+}
+
+model Application {
+  id        String   @id @default(cuid())
+  jobId     String   @map("job_id")
+  formData  Json     @map("form_data") // PostgreSQL native JSON support
+  status    ApplicationStatus @default(PENDING)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  
+  // Relations
+  job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  
+  @@map("applications")
+}
+
+enum JobStatus {
+  DRAFT
+  ACTIVE
+  INACTIVE
+}
+
+enum ApplicationStatus {
+  PENDING
+  REVIEWED
+  ACCEPTED
+  REJECTED
+}
