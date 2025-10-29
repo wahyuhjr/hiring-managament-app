@@ -20,7 +20,6 @@ const toastVariants = cva(
 )
 
 const Toast = React.forwardRef(({ className, variant, ...props }, ref) => {
-  // Filter out invalid props for div element
   const { onOpenChange, ...validProps } = props
   
   return (

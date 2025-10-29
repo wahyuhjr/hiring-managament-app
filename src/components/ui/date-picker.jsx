@@ -158,43 +158,45 @@ export function DatePicker({ value, onChange, placeholder, className }) {
       {isOpen && (
         <div className="absolute z-50 mt-2 w-80 rounded-lg border border-gray-200 bg-white shadow-lg p-4">
           <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
               <button
                 onClick={goToPreviousYear}
-                className="p-1 hover:bg-gray-100 rounded"
+                className="p-1.5 hover:bg-gray-100 rounded transition-colors text-gray-600 font-bold"
                 type="button"
+                title="Previous year"
               >
-                <ChevronLeft className="h-4 w-4" />
-                <ChevronLeft className="h-4 w-4 -ml-3" />
+                &lt;&lt;
               </button>
               <button
                 onClick={goToPreviousMonth}
-                className="p-1 hover:bg-gray-100 rounded"
+                className="p-1.5 hover:bg-gray-100 rounded transition-colors"
                 type="button"
+                title="Previous month"
               >
-                <ChevronLeft className="h-4 w-4" />
+                <ChevronLeft className="h-4 w-4 text-gray-700" />
               </button>
             </div>
             
-            <div className="font-semibold text-gray-900">
+            <div className="font-semibold text-gray-900 text-base">
               {formatMonthYear(currentMonth)}
             </div>
             
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
               <button
                 onClick={goToNextMonth}
-                className="p-1 hover:bg-gray-100 rounded"
+                className="p-1.5 hover:bg-gray-100 rounded transition-colors"
                 type="button"
+                title="Next month"
               >
-                <ChevronRight className="h-4 w-4" />
+                <ChevronRight className="h-4 w-4 text-gray-700" />
               </button>
               <button
                 onClick={goToNextYear}
-                className="p-1 hover:bg-gray-100 rounded"
+                className="p-1.5 hover:bg-gray-100 rounded transition-colors text-gray-600 font-bold"
                 type="button"
+                title="Next year"
               >
-                <ChevronRight className="h-4 w-4" />
-                <ChevronRight className="h-4 w-4 -ml-3" />
+                &gt;&gt;
               </button>
             </div>
           </div>

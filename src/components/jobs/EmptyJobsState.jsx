@@ -10,7 +10,6 @@ export function EmptyJobsState() {
 
   return (
     <div className="flex flex-col items-center justify-center py-16 px-4">
-      {/* Illustration */}
       <div className="mb-8">
         <Image
           src="/no-job-opening-logo.svg"
@@ -20,7 +19,6 @@ export function EmptyJobsState() {
         />
       </div>
 
-      {/* Text Content */}
       <div className="text-center max-w-md">
         <h2 className="text-xl font-semibold text-gray-900 mb-2">
           No job openings available
@@ -29,7 +27,6 @@ export function EmptyJobsState() {
           Create a job opening now and start the candidate process.
         </p>
 
-        {/* Action Button - Only show for authenticated users */}
         {user && (
           <div className="relative">
             <Link href="/admin/jobs/create">

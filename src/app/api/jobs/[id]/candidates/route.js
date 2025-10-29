@@ -111,9 +111,23 @@ export async function POST(request, { params }) {
       const formConfig = job.application_form
       const requiredFields = formConfig.fields
         .filter(field => field.validation && field.validation.required)
+        .filter(field => {
+          const photoKeys = ['photo_profile', 'photoprofile', 'photoprofile', 'photo', 'profile_photo', 'profilephoto', 'photo profile']
+          const lowerKey = field.key.toLowerCase().replace(/\s+/g, '_').replace(/\s+/g, '')
+          const normalizedKey = field.key.replace(/\s+/g, '_').toLowerCase()
+          const fieldKeyLower = field.key.toLowerCase()
+          
+          const isPhotoField = photoKeys.some(key => 
+            lowerKey === key.toLowerCase() || 
+            normalizedKey === key.toLowerCase() ||
+            fieldKeyLower === key.toLowerCase()
+          ) || (fieldKeyLower.includes('photo') && fieldKeyLower.includes('profile'))
+          
+          return !isPhotoField
+        })
 
       for (const field of requiredFields) {
-        if (!body[field.key] || body[field.key].toString().trim() === '') {
+        if (body[field.key] === undefined || body[field.key] === null || body[field.key].toString().trim() === '') {
           return NextResponse.json(
             apiError(`${field.label || field.key} is required`, 400),
             { status: 400 }

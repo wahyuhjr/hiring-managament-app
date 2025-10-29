@@ -21,16 +21,8 @@ export function CameraModal({ open, onClose, onCapture }) {
   const [countdown, setCountdown] = useState(null)
   const [capturedPhoto, setCapturedPhoto] = useState(null)
   const [isDetecting, setIsDetecting] = useState(false)
+  const [isInitializing, setIsInitializing] = useState(false)
   const [error, setError] = useState(null)
-
-  useEffect(() => {
-    if (open && videoRef.current) {
-      initializeHands()
-    }
-    return () => {
-      cleanup()
-    }
-  }, [open])
 
   const cleanup = () => {
     if (cameraRef.current) {
@@ -109,69 +101,36 @@ export function CameraModal({ open, onClose, onCapture }) {
     })
   }, [])
 
-  const initializeHands = async () => {
-    try {
-      setError(null)
-      
-      const Hands = await loadMediaPipeHands()
-      if (!Hands) {
-        throw new Error('Unable to load MediaPipe Hands')
-      }
-      
-      const hands = new Hands({
-        locateFile: (file) => {
-          return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
-        }
-      })
+  const capturePhoto = () => {
+    if (!videoRef.current || !videoRef.current.videoWidth) return
 
-      hands.setOptions({
-        maxNumHands: 1,
-        modelComplexity: 1,
-        minDetectionConfidence: 0.5,
-        minTrackingConfidence: 0.5
-      })
-
-      hands.onResults(onResults)
-      handsRef.current = hands
-
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          width: { ideal: 640 },
-          height: { ideal: 480 },
-          facingMode: 'user'
-        }
-      })
-
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream
-        videoRef.current.onloadedmetadata = () => {
-          videoRef.current.play()
-          setIsDetecting(true)
-          startDetectionLoop()
-        }
-      }
-
-      cameraRef.current = stream
-    } catch (err) {
-      console.error('Error initializing camera:', err)
-      setError('Failed to access camera. Please allow camera permissions.')
-    }
+    const canvas = document.createElement('canvas')
+    canvas.width = videoRef.current.videoWidth
+    canvas.height = videoRef.current.videoHeight
+    const ctx = canvas.getContext('2d')
+    
+    ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height)
+    
+    const dataUrl = canvas.toDataURL('image/png')
+    setCapturedPhoto(dataUrl)
+    setCountdown(null)
+    setIsDetecting(false)
+    cleanup()
   }
 
-  const startDetectionLoop = async () => {
-    const detect = async () => {
-      if (videoRef.current && videoRef.current.readyState === videoRef.current.HAVE_ENOUGH_DATA && handsRef.current && !countdown && !capturedPhoto) {
-        try {
-          await handsRef.current.send({ image: videoRef.current })
-        } catch (err) {
-          console.error('Error in detection:', err)
-        }
+  const startCountdown = () => {
+    let timer = 3
+    setCountdown(timer)
+
+    const countdownInterval = setInterval(() => {
+      timer--
+      setCountdown(timer)
+
+      if (timer <= 0) {
+        clearInterval(countdownInterval)
+        capturePhoto()
       }
-      if (!capturedPhoto && isDetecting) {
-        requestAnimationFrame(detect)
-      }
-    }
-    detect()
+    }, 1000)
   }
 
   const detectPose = (landmarks) => {
@@ -310,37 +269,110 @@ export function CameraModal({ open, onClose, onCapture }) {
     canvasCtx.restore()
   }
 
-  const startCountdown = () => {
-    let timer = 3
-    setCountdown(timer)
-
-    const countdownInterval = setInterval(() => {
-      timer--
-      setCountdown(timer)
-
-      if (timer <= 0) {
-        clearInterval(countdownInterval)
-        capturePhoto()
+  const startDetectionLoop = async () => {
+    const detect = async () => {
+      if (videoRef.current && videoRef.current.readyState === videoRef.current.HAVE_ENOUGH_DATA && handsRef.current && !countdown && !capturedPhoto) {
+        try {
+          await handsRef.current.send({ image: videoRef.current })
+        } catch (err) {
+          console.error('Error in detection:', err)
+        }
       }
-    }, 1000)
+      if (!capturedPhoto && isDetecting) {
+        requestAnimationFrame(detect)
+      }
+    }
+    detect()
   }
 
-  const capturePhoto = () => {
-    if (!videoRef.current || !videoRef.current.videoWidth) return
+  const initializeHands = useCallback(async () => {
+    try {
+      setError(null)
+      setIsInitializing(true)
+      
+      if (!videoRef.current) {
+        throw new Error('Video element not ready')
+      }
 
-    const canvas = document.createElement('canvas')
-    canvas.width = videoRef.current.videoWidth
-    canvas.height = videoRef.current.videoHeight
-    const ctx = canvas.getContext('2d')
+      const Hands = await loadMediaPipeHands()
+      if (!Hands) {
+        throw new Error('Unable to load MediaPipe Hands')
+      }
+      
+      const hands = new Hands({
+        locateFile: (file) => {
+          return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+        }
+      })
+
+      hands.setOptions({
+        maxNumHands: 1,
+        modelComplexity: 1,
+        minDetectionConfidence: 0.5,
+        minTrackingConfidence: 0.5
+      })
+
+      hands.onResults(onResults)
+      handsRef.current = hands
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          width: { ideal: 640 },
+          height: { ideal: 480 },
+          facingMode: 'user'
+        }
+      })
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream
+        videoRef.current.onloadedmetadata = () => {
+          videoRef.current.play()
+          setIsInitializing(false)
+          setIsDetecting(true)
+          startDetectionLoop()
+        }
+      } else {
+        stream.getTracks().forEach(track => track.stop())
+        throw new Error('Video element lost during initialization')
+      }
+
+      cameraRef.current = stream
+    } catch (err) {
+      console.error('Error initializing camera:', err)
+      setError(err.message || 'Failed to access camera. Please allow camera permissions.')
+      setIsDetecting(false)
+      setIsInitializing(false)
+    }
+  }, [loadMediaPipeHands, onResults, startDetectionLoop])
+
+  useEffect(() => {
+    if (!open) {
+      cleanup()
+      return
+    }
+
+    let retries = 0
+    const maxRetries = 10
     
-    ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height)
+    const tryInitialize = () => {
+      if (videoRef.current) {
+        initializeHands()
+      } else if (retries < maxRetries) {
+        retries++
+        setTimeout(tryInitialize, 100)
+      } else {
+        setError('Video element not found. Please try again.')
+        setIsInitializing(false)
+      }
+    }
+
+    const timer = setTimeout(tryInitialize, 100)
     
-    const dataUrl = canvas.toDataURL('image/png')
-    setCapturedPhoto(dataUrl)
-    setCountdown(null)
-    setIsDetecting(false)
-    cleanup()
-  }
+    return () => {
+      clearTimeout(timer)
+      cleanup()
+    }
+  }, [open, initializeHands])
 
   const handleRetake = () => {
     setCapturedPhoto(null)
@@ -368,6 +400,7 @@ export function CameraModal({ open, onClose, onCapture }) {
     setCurrentPose(3)
     setCountdown(null)
     setIsDetecting(false)
+    setIsInitializing(false)
     setError(null)
     onClose()
   }
@@ -410,16 +443,16 @@ export function CameraModal({ open, onClose, onCapture }) {
               </div>
             )}
 
-            {!isDetecting && !capturedPhoto && (
+            {(isInitializing || (!isDetecting && !capturedPhoto && !error)) && (
               <div className="absolute inset-0 flex items-center justify-center bg-black/80">
-                <p className="text-white">Loading camera...</p>
+                <p className="text-white">{isInitializing ? 'Initializing camera...' : 'Loading camera...'}</p>
               </div>
             )}
           </div>
 
           {capturedPhoto && (
             <div className="mb-4">
-              <img
+              <Image
                 src={capturedPhoto}
                 alt="Captured photo"
                 className="w-full rounded-lg"

@@ -93,9 +93,7 @@ export function Login() {
           />
         </div>
 
-        {/* Card Container */}
         <div className="w-full bg-white rounded-2xl shadow-lg border border-gray-200 p-8 md:p-12">
-          {/* Title */}
           <div className="mb-8">
             <h1 className="text-2xl font-bold text-gray-900 mb-3">
               Masuk ke Rakamin
@@ -111,9 +109,7 @@ export function Login() {
             </p>
           </div>
 
-          {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Email Field */}
             <div className="space-y-2 text-sm">
               <div className="relative">
                 <Label
@@ -123,7 +119,6 @@ export function Login() {
                   Alamat email
                 </Label>
                 
-                {/* Tooltip/Awareness - Absolute positioned */}
                 {showTooltip && (
                   <div className="absolute left-24 -top-2 z-10 bg-gray-800 text-white px-4 py-3 rounded-lg text-xs w-96">
                     <button
@@ -138,7 +133,6 @@ export function Login() {
                       <span className="font-semibold">valid</span> untuk{" "}
                       <span className="font-semibold">login melalui email atau Google</span>
                     </p>
-                    {/* Arrow pointing left */}
                     <div className="absolute top-3 -left-2 w-0 h-0 border-t-8 border-b-8 border-r-8 border-t-transparent border-b-transparent border-r-gray-800"></div>
                   </div>
                 )}
@@ -164,7 +158,6 @@ export function Login() {
               )}
             </div>
 
-            {/* Password Field */}
             <div className="space-y-2">
               <Label
                 htmlFor="password"
@@ -205,7 +198,6 @@ export function Login() {
               )}
             </div>
 
-            {/* Forgot Password Link */}
             <div className="text-right">
               <Link
                 href="/auth/forgot-password"
@@ -215,7 +207,6 @@ export function Login() {
               </Link>
             </div>
 
-            {/* Login Button */}
             <Button
               type="submit"
               disabled={loading}
@@ -225,7 +216,6 @@ export function Login() {
               Masuk
             </Button>
 
-            {/* Divider */}
             <div className="relative my-8">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-gray-300"></div>
@@ -235,7 +225,6 @@ export function Login() {
               </div>
             </div>
 
-            {/* Alternative Login Options */}
             <div className="space-y-3">
               <Button
                 type="button"

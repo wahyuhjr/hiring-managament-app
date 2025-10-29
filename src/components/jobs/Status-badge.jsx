@@ -4,7 +4,6 @@ import { cn } from '@/lib/utils'
 export function StatusBadge({ status, className, ...props }) {
   const getStatusConfig = (status) => {
     const configs = {
-      // Job statuses
       active: {
         label: 'Active',
         textColor: 'text-green-600',

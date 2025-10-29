@@ -159,15 +159,7 @@ function ApplyContent({ params }) {
       const result = await response.json()
 
       if (result.success) {
-        toast({
-          variant: "success",
-          title: "Application submitted!",
-          description: "Your application has been received successfully.",
-        })
-        
-        setTimeout(() => {
-          router.push('/portal')
-        }, 2000)
+        router.push(`/portal/${resolvedParams.id}/apply/success`)
       } else {
         toast({
           variant: "destructive",
@@ -224,7 +216,7 @@ function ApplyContent({ params }) {
 
           <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <Label className="mb-3 block">Photo Profile</Label>
+            <Label className="mb-3 block">Photo Profile <span className="text-gray-500 text-sm font-normal">(Optional)</span></Label>
             <div className="flex items-start gap-6">
               <div className="flex flex-col items-center">
                 <div className="w-24 h-24 rounded-full bg-gray-200 border-2 border-gray-300 overflow-hidden flex items-center justify-center">

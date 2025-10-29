@@ -29,7 +29,6 @@ export function Register() {
     e.preventDefault();
     setErrors({});
 
-    // Simple validation
     const newErrors = {};
     if (!formData.username) newErrors.username = "Username wajib diisi";
     if (!formData.email) newErrors.email = "Alamat email wajib diisi";
@@ -70,7 +69,6 @@ export function Register() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4 py-8">
       <div className="w-full max-w-xl">
-        {/* Logo */}
         <div className="mb-8">
           <Image
             src="/logo-rakamin.svg"
@@ -80,9 +78,7 @@ export function Register() {
           />
         </div>
 
-        {/* Card Container */}
         <div className="w-full bg-white rounded-2xl shadow-lg border border-gray-200 p-8 md:p-12">
-          {/* Title */}
           <div className="mb-8">
             <h1 className="text-2xl font-bold text-gray-900 mb-3">
               Daftar ke Rakamin
@@ -98,9 +94,7 @@ export function Register() {
             </p>
           </div>
 
-          {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Username Field */}
             <div className="space-y-2 text-sm">
               <Label
                 htmlFor="username"
@@ -129,7 +123,6 @@ export function Register() {
               )}
             </div>
 
-            {/* Email Field */}
             <div className="space-y-2 text-sm">
               <div className="relative">
                 <Label
@@ -139,7 +132,6 @@ export function Register() {
                   Alamat email
                 </Label>
                 
-                {/* Tooltip/Awareness - Absolute positioned */}
                 {showTooltip && (
                   <div className="absolute left-24 -top-2 z-10 bg-gray-800 text-white px-4 py-3 rounded-lg text-xs w-96">
                     <button
@@ -154,7 +146,6 @@ export function Register() {
                       <span className="font-semibold">valid</span> untuk{" "}
                       <span className="font-semibold">login melalui email atau Google</span>
                     </p>
-                    {/* Arrow pointing left */}
                     <div className="absolute top-3 -left-2 w-0 h-0 border-t-8 border-b-8 border-r-8 border-t-transparent border-b-transparent border-r-gray-800"></div>
                   </div>
                 )}
@@ -180,7 +171,6 @@ export function Register() {
               )}
             </div>
 
-            {/* Password Field */}
             <div className="space-y-2">
               <Label
                 htmlFor="password"
@@ -221,7 +211,6 @@ export function Register() {
               )}
             </div>
 
-            {/* Register Button */}
             <Button
               type="submit"
               disabled={loading}
@@ -231,7 +220,6 @@ export function Register() {
               Daftar
             </Button>
 
-            {/* Divider */}
             <div className="relative my-8">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-gray-300"></div>
@@ -241,7 +229,6 @@ export function Register() {
               </div>
             </div>
 
-            {/* Alternative Login Options */}
             <div className="space-y-3">
               <Button
                 type="button"

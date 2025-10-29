@@ -6,7 +6,6 @@ export function EmptyJobOpening() {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <div className="text-center max-w-md">
-        {/* Illustration */}
         <div className="mb-8 flex justify-center">
           <Image
             src="/no-job-opening-logo.svg"
@@ -17,7 +16,6 @@ export function EmptyJobOpening() {
           />
         </div>
 
-        {/* Text Content */}
         <div className="space-y-2">
           <h2 className="text-2xl font-bold text-gray-900">
             No job openings available

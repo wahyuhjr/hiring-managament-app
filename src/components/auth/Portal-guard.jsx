@@ -11,13 +11,10 @@ export function PortalGuard({ children }) {
   useEffect(() => {
     if (!loading) {
       if (!user) {
-        // User not logged in, redirect to login
         router.push("/auth/login")
       } else if (user.user_metadata?.is_admin) {
-        // Admin user, redirect to admin panel
         router.push("/admin/jobs")
       }
-      // Regular user stays on portal
     }
   }, [user, loading, router])
 

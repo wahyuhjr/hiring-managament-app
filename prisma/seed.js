@@ -4,12 +4,10 @@ const prisma = new PrismaClient()
 async function main() {
   console.log('🌱 Starting seed...')
 
-  // Clear existing data
   await prisma.application.deleteMany()
   await prisma.job.deleteMany()
   console.log('✅ Cleared existing data')
 
-  // Create sample jobs
   const jobs = [
     {
       title: 'Senior Frontend Developer',
@@ -233,7 +231,6 @@ async function main() {
     console.log(`  ✅ Created job: ${job.title} (${job.status})`)
   }
 
-  // Create sample applications for the first job
   const firstJob = await prisma.job.findFirst({
     where: { slug: 'senior-frontend-developer' }
   })

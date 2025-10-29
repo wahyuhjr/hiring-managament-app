@@ -14,8 +14,6 @@ export function AuthGuard({ children, requireAdmin = false }) {
       return
     }
 
-    // For now, we'll assume all authenticated users are admins
-    // You can add admin role checking later
     if (requireAdmin && user && !user.user_metadata?.is_admin) {
       router.push('/')
       return
