@@ -11,8 +11,9 @@ import { useToast } from "@/components/ui/use-toast";
 import { Eye, EyeOff, Loader2, Mail, AlertTriangle, X } from "lucide-react";
 import Image from "next/image";
 
-export function Login() {
+export function Register() {
   const [formData, setFormData] = useState({
+    username: "",
     email: "",
     password: "",
   });
@@ -20,7 +21,7 @@ export function Login() {
   const [errors, setErrors] = useState({});
   const [showTooltip, setShowTooltip] = useState(false);
 
-  const { login, loading } = useAuth();
+  const { register, loading } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
 
@@ -28,7 +29,9 @@ export function Login() {
     e.preventDefault();
     setErrors({});
 
+    // Simple validation
     const newErrors = {};
+    if (!formData.username) newErrors.username = "Username wajib diisi";
     if (!formData.email) newErrors.email = "Alamat email wajib diisi";
     if (!formData.password) newErrors.password = "Kata sandi wajib diisi";
 
@@ -38,35 +41,18 @@ export function Login() {
     }
 
     try {
-      await login(formData.email, formData.password);
+      await register(formData.email, formData.password, formData.username);
       
       toast({
-        title: "Berhasil masuk",
-        description: "Selamat datang kembali!",
-        variant: "success",
+        title: "Berhasil mendaftar",
+        description: "Silakan cek email Anda untuk konfirmasi akun!",
       });
-      router.push("/portal");
+      router.push("/auth/login");
       router.refresh();
     } catch (error) {
-      console.error('Login error:', error);
-      
-      let errorMessage = "Email atau kata sandi salah";
-      
-      if (error.message) {
-        if (error.message.includes('Invalid login credentials')) {
-          errorMessage = "Email atau kata sandi tidak valid";
-        } else if (error.message.includes('Email not confirmed')) {
-          errorMessage = "Email belum dikonfirmasi. Silakan cek email Anda";
-        } else if (error.message.includes('Too many requests')) {
-          errorMessage = "Terlalu banyak percobaan login. Silakan coba lagi nanti";
-        } else {
-          errorMessage = error.message;
-        }
-      }
-      
       toast({
-        title: "Gagal masuk",
-        description: errorMessage,
+        title: "Gagal mendaftar",
+        description: error.message || "Terjadi kesalahan saat mendaftar",
         variant: "destructive",
       });
     }
@@ -84,6 +70,7 @@ export function Login() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4 py-8">
       <div className="w-full max-w-xl">
+        {/* Logo */}
         <div className="mb-8">
           <Image
             src="/logo-rakamin.svg"
@@ -98,21 +85,50 @@ export function Login() {
           {/* Title */}
           <div className="mb-8">
             <h1 className="text-2xl font-bold text-gray-900 mb-3">
-              Masuk ke Rakamin
+              Daftar ke Rakamin
             </h1>
             <p className="text-gray-600 text-sm">
-              Belum punya akun?{" "}
+              Sudah punya akun?{" "}
               <Link
-                href="/auth/register"
+                href="/auth/login"
                 className="text-cyan-600 hover:text-cyan-700 font-medium"
               >
-                Daftar menggunakan email
+                Masuk menggunakan email
               </Link>
             </p>
           </div>
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Username Field */}
+            <div className="space-y-2 text-sm">
+              <Label
+                htmlFor="username"
+                className="text-sm font-normal text-gray-700"
+              >
+                Username
+              </Label>
+              <Input
+                id="username"
+                name="username"
+                type="text"
+                value={formData.username}
+                onChange={handleChange}
+                placeholder="Masukkan username"
+                className={`h-14 text-base border-2 rounded-lg transition-colors focus:outline-none ${
+                  errors.username
+                    ? "border-red-500 focus:border-red-500"
+                    : "border-gray-300 hover:border-cyan-700 focus:border-cyan-500"
+                }`}
+              />
+              {errors.username && (
+                <div className="flex items-center gap-2 text-red-600">
+                  <AlertTriangle className="h-4 w-4 shrink-0" />
+                  <p className="text-sm">{errors.username}</p>
+                </div>
+              )}
+            </div>
+
             {/* Email Field */}
             <div className="space-y-2 text-sm">
               <div className="relative">
@@ -205,24 +221,14 @@ export function Login() {
               )}
             </div>
 
-            {/* Forgot Password Link */}
-            <div className="text-right">
-              <Link
-                href="/auth/forgot-password"
-                className="text-cyan-600 hover:text-cyan-700 text-base"
-              >
-                Lupa kata sandi?
-              </Link>
-            </div>
-
-            {/* Login Button */}
+            {/* Register Button */}
             <Button
               type="submit"
               disabled={loading}
               className="w-full h-14 bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-semibold text-base rounded-lg shadow-sm"
             >
               {loading && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
-              Masuk
+              Daftar
             </Button>
 
             {/* Divider */}
@@ -237,15 +243,6 @@ export function Login() {
 
             {/* Alternative Login Options */}
             <div className="space-y-3">
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full h-14 border-2 border-gray-300 hover:border-gray-400 hover:bg-gray-50 text-gray-900 font-medium text-base rounded-lg"
-              >
-                <Mail className="mr-3 h-5 w-5 text-gray-600" />
-                Kirim link login melalui email
-              </Button>
-
               <Button
                 type="button"
                 variant="outline"
@@ -269,7 +266,7 @@ export function Login() {
                     d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                   />
                 </svg>
-                Masuk dengan Google
+                Daftar dengan Google
               </Button>
             </div>
           </form>
@@ -279,4 +276,4 @@ export function Login() {
   );
 }
 
-export default Login;
+export default Register;

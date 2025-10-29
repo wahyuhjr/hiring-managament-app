@@ -1,40 +1,48 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { candidateListResponse, apiError, handleApiError } from '@/lib/api-response'
+import { createClient } from '@supabase/supabase-js'
+import { apiError, handleApiError } from '@/lib/api-response'
 
-// GET /api/jobs/[id]/applications - Get applications for job
+const supabaseUrl = 'https://pjufmuhiarceoynrkiwj.supabase.co'
+const supabaseKey = process.env.SUPABASE_KEY
+const supabase = createClient(supabaseUrl, supabaseKey)
+
 export async function GET(request, { params }) {
   try {
+    const resolvedParams = await params
     const { searchParams } = new URL(request.url)
     const limit = parseInt(searchParams.get('limit')) || 10
     const offset = parseInt(searchParams.get('offset')) || 0
-    const sortBy = searchParams.get('sortBy') || 'createdAt'
+    const sortBy = searchParams.get('sortBy') || 'created_at'
     const sortOrder = searchParams.get('sortOrder') || 'desc'
 
-    const job = await prisma.job.findUnique({
-      where: { id: params.id }
-    })
+    const jobId = resolvedParams.id
 
-    if (!job) {
+    const { data: job, error: jobError } = await supabase
+      .from('jobs')
+      .select('id')
+      .eq('id', jobId)
+      .single()
+
+    if (jobError || !job) {
       return NextResponse.json(
         apiError('Job not found', 404),
         { status: 404 }
       )
     }
 
-    const [applications, totalCount] = await Promise.all([
-      prisma.application.findMany({
-        where: { jobId: params.id },
-        take: limit,
-        skip: offset,
-        orderBy: { [sortBy]: sortOrder }
-      }),
-      prisma.application.count({ where: { jobId: params.id } })
-    ])
+    const { data: applications, error: appsError } = await supabase
+      .from('applications')
+      .select('*')
+      .eq('job_id', jobId)
+      .order(sortBy, { ascending: sortOrder === 'asc' })
+      .range(offset, offset + limit - 1)
 
-    // Transform applications to match exact PRD format
+    if (appsError) {
+      throw appsError
+    }
+
     const transformedApplications = applications.map((app) => {
-      const formData = app.formData
+      const formData = app.form_data || {}
       
       return {
         id: app.id,
@@ -47,7 +55,6 @@ export async function GET(request, { params }) {
             order: index + 1
           }))
           .sort((a, b) => {
-            // Custom ordering for common fields
             const fieldOrder = {
               'full_name': 1,
               'email': 2,
@@ -63,23 +70,30 @@ export async function GET(request, { params }) {
       }
     })
 
-    return NextResponse.json(candidateListResponse(transformedApplications))
+    return NextResponse.json({
+      success: true,
+      data: transformedApplications
+    })
 
   } catch (error) {
     return NextResponse.json(handleApiError(error), { status: 500 })
   }
 }
 
-// POST /api/jobs/[id]/applications - Submit application  
 export async function POST(request, { params }) {
   try {
+    const resolvedParams = await params
     const body = await request.json()
 
-    const job = await prisma.job.findUnique({
-      where: { id: params.id }
-    })
+    const jobId = resolvedParams.id
 
-    if (!job) {
+    const { data: job, error: jobError } = await supabase
+      .from('jobs')
+      .select('id, status, application_form')
+      .eq('id', jobId)
+      .single()
+
+    if (jobError || !job) {
       return NextResponse.json(
         apiError('Job not found', 404),
         { status: 404 }
@@ -93,12 +107,10 @@ export async function POST(request, { params }) {
       )
     }
 
-    // Validate required fields based on job's application form
-    if (job.applicationForm) {
-      const formConfig = job.applicationForm
-      const requiredFields = formConfig.sections
-        .flatMap(section => section.fields)
-        .filter(field => field.validation.required)
+    if (job.application_form) {
+      const formConfig = job.application_form
+      const requiredFields = formConfig.fields
+        .filter(field => field.validation && field.validation.required)
 
       for (const field of requiredFields) {
         if (!body[field.key] || body[field.key].toString().trim() === '') {
@@ -110,13 +122,19 @@ export async function POST(request, { params }) {
       }
     }
 
-    const application = await prisma.application.create({
-      data: {
-        jobId: params.id,
-        formData: body,
+    const { data: application, error: appError } = await supabase
+      .from('applications')
+      .insert({
+        job_id: jobId,
+        form_data: body,
         status: 'PENDING'
-      }
-    })
+      })
+      .select()
+      .single()
+
+    if (appError) {
+      throw appError
+    }
 
     return NextResponse.json({
       success: true,

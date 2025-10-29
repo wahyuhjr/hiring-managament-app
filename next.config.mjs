@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  /* config options here */
+  // Disable Turbopack for MediaPipe compatibility
+  // Use webpack explicitly
 };
 
 export default nextConfig;

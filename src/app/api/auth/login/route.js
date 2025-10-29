@@ -7,7 +7,7 @@ const supabase = createClient(supabaseUrl, supabaseKey)
 
 export async function POST(request) {
   try {
-    const { email, password, fullName } = await request.json()
+    const { email, password } = await request.json()
 
     if (!email || !password) {
       return NextResponse.json(
@@ -16,29 +16,26 @@ export async function POST(request) {
       )
     }
 
-    const { data, error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
-      options: {
-        data: {
-          full_name: fullName,
-        }
-      }
     })
 
     if (error) {
       return NextResponse.json(
         { success: false, message: error.message },
-        { status: 400 }
+        { status: 401 }
       )
     }
 
     return NextResponse.json({
       success: true,
-      message: 'Registration successful. Please check your email to confirm your account.',
+      message: 'Login successful',
       user: {
         id: data.user.id,
         email: data.user.email,
+        access_token: data.session.access_token,
+        refresh_token: data.session.refresh_token,
       }
     })
 

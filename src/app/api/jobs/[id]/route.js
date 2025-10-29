@@ -1,170 +1,123 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { jobListResponse, apiError, handleApiError } from '@/lib/api-response'
+import { createClient } from '@supabase/supabase-js'
+import { apiError, handleApiError } from '@/lib/api-response'
 
-// GET /api/jobs - List all jobs
-export async function GET(request) {
+const supabaseUrl = 'https://pjufmuhiarceoynrkiwj.supabase.co'
+const supabaseKey = process.env.SUPABASE_KEY
+const supabase = createClient(supabaseUrl, supabaseKey)
+
+export async function GET(request, { params }) {
   try {
-    const { searchParams } = new URL(request.url)
-    const status = searchParams.get('status')
-    const search = searchParams.get('search')
-    const limit = parseInt(searchParams.get('limit')) || 10
-    const offset = parseInt(searchParams.get('offset')) || 0
+    const resolvedParams = await params
+    const jobId = resolvedParams.id
 
-    const where = {}
-    
-    if (status && status !== 'all') {
-      where.status = status.toUpperCase()
-    }
-    
-    if (search) {
-      where.OR = [
-        { title: { contains: search, mode: 'insensitive' } },
-        { department: { contains: search, mode: 'insensitive' } }
-      ]
+    const { data: job, error } = await supabase
+      .from('jobs')
+      .select(`
+        *,
+        applications(count)
+      `)
+      .eq('id', jobId)
+      .single()
+
+    if (error) {
+      throw error
     }
 
-    const [jobs, totalCount] = await Promise.all([
-      prisma.job.findMany({
-        where,
-        take: limit,
-        skip: offset,
-        orderBy: { createdAt: 'desc' },
-        include: {
-          _count: {
-            select: { applications: true }
-          }
-        }
-      }),
-      prisma.job.count({ where })
-    ])
+    if (!job) {
+      return NextResponse.json(
+        apiError('Job not found', 404),
+        { status: 404 }
+      )
+    }
 
-    // Transform jobs to match exact PRD format
-    const transformedJobs = jobs.map(job => ({
+    const transformedJob = {
       id: job.id,
       slug: job.slug,
       title: job.title,
+      department: job.department,
+      description: job.description,
       status: job.status.toLowerCase(),
       salary_range: {
-        min: job.salaryMin,
-        max: job.salaryMax,
+        min: job.salary_min,
+        max: job.salary_max,
         currency: job.currency,
-        display_text: `Rp${job.salaryMin.toLocaleString('id-ID')} - Rp${job.salaryMax.toLocaleString('id-ID')}`
+        display_text: `Rp${job.salary_min.toLocaleString('id-ID')} - Rp${job.salary_max.toLocaleString('id-ID')}`
       },
       list_card: {
         badge: job.status === 'ACTIVE' ? 'Active' : job.status === 'DRAFT' ? 'Draft' : 'Inactive',
-        started_on_text: `started on ${job.createdAt.toLocaleDateString('en-GB', { 
+        started_on_text: `started on ${new Date(job.created_at).toLocaleDateString('en-GB', { 
           day: 'numeric', 
           month: 'short', 
           year: 'numeric' 
         })}`,
         cta: 'Manage Job'
-      }
-    }))
-
-    // Return exact format as PRD
-    const response = jobListResponse(transformedJobs)
-    
-    // Add pagination if needed
-    if (limit && offset !== undefined) {
-      response.pagination = {
-        total: totalCount,
-        limit,
-        offset,
-        hasMore: offset + limit < totalCount
-      }
+      },
+      _count: {
+        applications: job.applications?.[0]?.count || 0
+      },
+      createdAt: job.created_at
     }
 
-    return NextResponse.json(response)
+    return NextResponse.json({
+      success: true,
+      data: transformedJob
+    })
 
   } catch (error) {
     return NextResponse.json(handleApiError(error), { status: 500 })
   }
 }
 
-// POST /api/jobs - Create new job
-export async function POST(request) {
+export async function PATCH(request, { params }) {
   try {
+    const resolvedParams = await params
+    const jobId = resolvedParams.id
     const body = await request.json()
     
-    const {
-      title,
-      description,
-      department,
-      status = 'DRAFT',
-      salary_min,
-      salary_max,
-      currency = 'IDR',
-      application_form
-    } = body
+    const { status } = body
 
-    // Validation
-    if (!title || !department || !salary_min || !salary_max) {
+    if (!status) {
       return NextResponse.json(
-        apiError('Missing required fields', 400),
+        apiError('Status is required', 400),
         { status: 400 }
       )
     }
 
-    if (salary_max < salary_min) {
+    const { data: existingJob, error: fetchError } = await supabase
+      .from('jobs')
+      .select('id')
+      .eq('id', jobId)
+      .single()
+
+    if (fetchError || !existingJob) {
       return NextResponse.json(
-        apiError('Maximum salary must be greater than minimum salary', 400),
-        { status: 400 }
+        apiError('Job not found', 404),
+        { status: 404 }
       )
     }
 
-    // Generate unique slug
-    const baseSlug = title.toLowerCase()
-      .replace(/[^a-z0-9 -]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-')
-
-    let slug = baseSlug
-    let counter = 1
-    
-    while (await prisma.job.findUnique({ where: { slug } })) {
-      slug = `${baseSlug}-${counter}`
-      counter++
-    }
-
-    const job = await prisma.job.create({
-      data: {
-        title,
-        slug,
-        description,
-        department,
+    const { data: job, error } = await supabase
+      .from('jobs')
+      .update({ 
         status: status.toUpperCase(),
-        salaryMin: salary_min,
-        salaryMax: salary_max,
-        currency,
-        applicationForm: application_form || null
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', jobId)
+      .select()
+      .single()
+
+    if (error) {
+      throw error
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        id: job.id,
+        status: job.status.toLowerCase()
       }
     })
-
-    // Transform response to match PRD format
-    const transformedJob = {
-      id: job.id,
-      slug: job.slug,
-      title: job.title,
-      status: job.status.toLowerCase(),
-      salary_range: {
-        min: job.salaryMin,
-        max: job.salaryMax,
-        currency: job.currency,
-        display_text: `Rp${job.salaryMin.toLocaleString('id-ID')} - Rp${job.salaryMax.toLocaleString('id-ID')}`
-      },
-      list_card: {
-        badge: job.status === 'ACTIVE' ? 'Active' : job.status === 'DRAFT' ? 'Draft' : 'Inactive',
-        started_on_text: `started on ${job.createdAt.toLocaleDateString('en-GB', { 
-          day: 'numeric', 
-          month: 'short', 
-          year: 'numeric' 
-        })}`,
-        cta: 'Manage Job'
-      }
-    }
-
-    return NextResponse.json(transformedJob, { status: 201 })
 
   } catch (error) {
     return NextResponse.json(handleApiError(error), { status: 500 })

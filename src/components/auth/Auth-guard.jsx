@@ -2,25 +2,38 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuthStore } from '@/lib/store/auth'
+import { useAuth } from '@/lib/auth-context'
 
 export function AuthGuard({ children, requireAdmin = false }) {
-  const { isAuthenticated, isAdmin, user } = useAuthStore()
+  const { user, loading } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
-    if (!isAuthenticated()) {
-      router.push('/auth/signin')
+    if (!loading && !user) {
+      router.push('/auth/login')
       return
     }
 
-    if (requireAdmin && !isAdmin()) {
+    // For now, we'll assume all authenticated users are admins
+    // You can add admin role checking later
+    if (requireAdmin && user && !user.user_metadata?.is_admin) {
       router.push('/')
       return
     }
-  }, [isAuthenticated, isAdmin, requireAdmin, router])
+  }, [user, loading, requireAdmin, router])
 
-  if (!isAuthenticated()) {
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-2 text-gray-600">Memuat...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -31,7 +44,7 @@ export function AuthGuard({ children, requireAdmin = false }) {
     )
   }
 
-  if (requireAdmin && !isAdmin()) {
+  if (requireAdmin && !user.user_metadata?.is_admin) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">

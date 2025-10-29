@@ -1,7 +1,3 @@
-/**
- * Standardized API response formats
- */
-
 export function jobListResponse(jobs) {
   return {
     success: true,
@@ -24,16 +20,18 @@ export function apiError(message, code = 500) {
 export function handleApiError(error) {
   console.error('API Error:', error)
   
-  // Prisma specific errors
-  if (error.code === 'P2002') {
+  if (error.code === '23505') {
     return apiError('Duplicate entry found', 409)
   }
   
-  if (error.code === 'P2025') {
-    return apiError('Record not found', 404)
+  if (error.code === '23503') {
+    return apiError('Foreign key constraint violation', 400)
   }
   
-  // Generic error
+  if (error.code === '23502') {
+    return apiError('Required field is missing', 400)
+  }
+  
   return apiError(error.message || 'Internal server error', 500)
 }
 
