@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils"
 
 export function DatePicker({ value, onChange, placeholder, className }) {
   const [isOpen, setIsOpen] = useState(false)
-  const [currentMonth, setCurrentMonth] = useState(() => {
+  const [internalMonth, setInternalMonth] = useState(() => {
     if (value) {
       return new Date(value)
     }
@@ -14,12 +14,12 @@ export function DatePicker({ value, onChange, placeholder, className }) {
   })
   const pickerRef = useRef(null)
 
-  useEffect(() => {
-    if (value) {
-      const date = typeof value === 'string' ? new Date(value + 'T00:00:00') : new Date(value)
-      setCurrentMonth(date)
-    }
-  }, [value])
+  const currentMonth = value 
+    ? (() => {
+        const date = typeof value === 'string' ? new Date(value + 'T00:00:00') : new Date(value)
+        return new Date(date.getFullYear(), date.getMonth(), 1)
+      })()
+    : internalMonth
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -116,19 +116,23 @@ export function DatePicker({ value, onChange, placeholder, className }) {
   }
 
   const goToPreviousMonth = () => {
-    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))
+    const newMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1)
+    setInternalMonth(newMonth)
   }
 
   const goToNextMonth = () => {
-    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))
+    const newMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1)
+    setInternalMonth(newMonth)
   }
 
   const goToPreviousYear = () => {
-    setCurrentMonth(new Date(currentMonth.getFullYear() - 1, currentMonth.getMonth(), 1))
+    const newMonth = new Date(currentMonth.getFullYear() - 1, currentMonth.getMonth(), 1)
+    setInternalMonth(newMonth)
   }
 
   const goToNextYear = () => {
-    setCurrentMonth(new Date(currentMonth.getFullYear() + 1, currentMonth.getMonth(), 1))
+    const newMonth = new Date(currentMonth.getFullYear() + 1, currentMonth.getMonth(), 1)
+    setInternalMonth(newMonth)
   }
 
   const days = getDaysInMonth(currentMonth)

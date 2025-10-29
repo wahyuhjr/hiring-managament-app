@@ -13,10 +13,7 @@ export async function GET(request, { params }) {
 
     const { data: job, error } = await supabase
       .from('jobs')
-      .select(`
-        *,
-        applications(count)
-      `)
+      .select('id, slug, title, department, description, status, salary_min, salary_max, currency, application_form, created_at, applications(count)')
       .eq('id', jobId)
       .single()
 
@@ -38,6 +35,7 @@ export async function GET(request, { params }) {
       department: job.department,
       description: job.description,
       status: job.status.toLowerCase(),
+      application_form: job.application_form || null,
       salary_range: {
         min: job.salary_min,
         max: job.salary_max,

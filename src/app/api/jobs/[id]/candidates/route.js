@@ -107,27 +107,33 @@ export async function POST(request, { params }) {
       )
     }
 
-    if (job.application_form) {
+    if (job.application_form && job.application_form.fields && Array.isArray(job.application_form.fields)) {
       const formConfig = job.application_form
+      
       const requiredFields = formConfig.fields
-        .filter(field => field.validation && field.validation.required)
         .filter(field => {
-          const photoKeys = ['photo_profile', 'photoprofile', 'photoprofile', 'photo', 'profile_photo', 'profilephoto', 'photo profile']
-          const lowerKey = field.key.toLowerCase().replace(/\s+/g, '_').replace(/\s+/g, '')
-          const normalizedKey = field.key.replace(/\s+/g, '_').toLowerCase()
-          const fieldKeyLower = field.key.toLowerCase()
-          
-          const isPhotoField = photoKeys.some(key => 
-            lowerKey === key.toLowerCase() || 
-            normalizedKey === key.toLowerCase() ||
-            fieldKeyLower === key.toLowerCase()
-          ) || (fieldKeyLower.includes('photo') && fieldKeyLower.includes('profile'))
-          
-          return !isPhotoField
+          if (!field.validation) return false
+          return field.validation.required === true
         })
 
       for (const field of requiredFields) {
-        if (body[field.key] === undefined || body[field.key] === null || body[field.key].toString().trim() === '') {
+        const photoKeys = ['photo_profile', 'photoprofile', 'photo', 'profile_photo', 'profilephoto', 'photo profile']
+        const lowerKey = field.key.toLowerCase().replace(/\s+/g, '_').replace(/\s+/g, '')
+        const normalizedKey = field.key.replace(/\s+/g, '_').toLowerCase()
+        const fieldKeyLower = field.key.toLowerCase()
+        
+        const isPhotoField = photoKeys.some(key => 
+          lowerKey === key.toLowerCase() || 
+          normalizedKey === key.toLowerCase() ||
+          fieldKeyLower === key.toLowerCase()
+        ) || (fieldKeyLower.includes('photo') && fieldKeyLower.includes('profile'))
+
+        if (isPhotoField) {
+          continue
+        }
+
+        const fieldValue = body[field.key]
+        if (fieldValue === undefined || fieldValue === null || fieldValue.toString().trim() === '') {
           return NextResponse.json(
             apiError(`${field.label || field.key} is required`, 400),
             { status: 400 }

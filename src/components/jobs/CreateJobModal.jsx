@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 export function CreateJobModal({ children, onJobCreated }) {
   const [open, setOpen] = useState(false);
@@ -329,25 +329,14 @@ export function CreateJobModal({ children, onJobCreated }) {
                     </Label>
                     <div className="flex gap-2">
                       {["mandatory", "optional", "off"].map((option) => {
-                        const isRestrictedField =
-                          field === "Full name" ||
-                          field === "Photo Profile" ||
-                          field === "Email";
-
-                        const isDisabled =
-                          isRestrictedField && option !== "mandatory";
-
                         return (
                           <button
                             key={option}
                             type="button"
-                            onClick={() => !isDisabled && handleFieldChange(field, option)}
-                            disabled={isDisabled}
+                            onClick={() => handleFieldChange(field, option)}
                             className={`px-4 py-1.5 rounded-full text-xs font-medium capitalize transition-all ${
                               profileFields[field] === option
                                 ? "bg-white text-cyan-500 border border-cyan-500 shadow-md"
-                                : isDisabled
-                                ? "bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed"
                                 : "bg-white text-gray-600 border border-gray-300 hover:border-gray-400 hover:shadow-sm"
                             }`}
                           >

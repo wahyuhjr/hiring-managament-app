@@ -15,7 +15,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { AuthGuard } from "@/components/auth/Auth-guard";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 export default function JobDetailPage({ params }) {
   return (
