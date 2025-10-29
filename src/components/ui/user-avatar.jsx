@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import {
   DropdownMenu,
@@ -17,19 +18,17 @@ import { useToast } from "@/components/ui/use-toast"
 export function UserAvatar() {
   const { user, logout } = useAuth()
   const { toast } = useToast()
-  const [userName, setUserName] = useState("")
+  const router = useRouter()
 
-  useEffect(() => {
-    if (user) {
-      // Get user name from user metadata or email
-      const name = user.user_metadata?.full_name || user.email?.split('@')[0] || "User"
-      setUserName(name)
-    }
-  }, [user])
+  const userName = user 
+    ? (user.user_metadata?.full_name || user.email?.split('@')[0] || "User")
+    : ""
 
   const handleLogout = async () => {
     try {
       await logout()
+      router.push('/auth/login')
+      router.refresh()
       toast({
         variant: "success",
         title: "Logged out successfully",
