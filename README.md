@@ -1,36 +1,76 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+### Rakamin Job Portal – Runbook & Login Guide
 
-## Getting Started
+Aplikasi portal lowongan kerja berbasis Next.js + Supabase.
 
-First, run the development server:
+### Live URL
+
+- Production: `https://hiring-m363tz7p1-wahyuhjrs-projects.vercel.app`
+
+### Akun Uji
+
+- Admin: `admin@rakamin.com` | password: `admin123`
+- User: `user@rakamin.com` | password: `user123`
+
+Setelah login sebagai Admin, buka halaman `Admin → Jobs` untuk membuat atau mengelola lowongan. User dapat melamar melalui halaman `Portal` dan detail job.
+
+## Cara Menjalankan Secara Lokal
+
+1) Clone & install dependencies
+
+```bash
+git clone <repo-url>
+cd rakamin
+npm install
+```
+
+2) Siapkan environment Supabase
+
+- Salin `supabase_env_template.txt` menjadi `.env.local`, lalu isi nilai yang diminta.
+- Jika belum punya project/database, ikuti `SUPABASE_SETUP.md`.
+
+3) Setup database (opsional jika memakai DB lokal)
+
+```bash
+npm run db:push      # atau npm run db:migrate
+npm run db:seed      # isi data awal
+```
+
+4) Jalankan aplikasi
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# buka http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Build & Production
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+```bash
+npm run build
+npm start
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Deploy ke Vercel
 
-## Learn More
+Proyek sudah terhubung ke Vercel dan terdeploy ke URL di atas. Untuk redeploy manual:
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+vercel --prod
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Jika pertama kali link, ikuti prompt untuk membuat/menautkan project. Build command default: `next build`.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Catatan Fitur Form Lamaran
 
-## Deploy on Vercel
+- Field dapat diatur `Mandatory`, `Optional`, atau `Off` dari `Admin → Jobs`.
+- Validasi front-end dan back-end sudah sinkron mengikuti konfigurasi tersebut.
+- `Photo Profile` default-nya optional; akan dikirim hanya jika diisi.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Struktur Penting
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- API route job & pelamar: `src/app/api/jobs/*`
+- Halaman apply: `src/app/portal/[id]/apply/page.jsx`
+- Komponen Admin: `src/components/jobs/*`
+
+---
+
+Jika ada kendala setup atau deploy, sertakan log error dari terminal atau halaman build Vercel saat melaporkan masalah.
