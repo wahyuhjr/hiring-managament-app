@@ -35,6 +35,8 @@ function ApplyContent({ params }) {
   const [emailValid, setEmailValid] = useState(false)
   const [linkedinValid, setLinkedinValid] = useState(false)
   const [isCameraOpen, setIsCameraOpen] = useState(false)
+  const [errors, setErrors] = useState({})
+  const [touched, setTouched] = useState({})
   
   const resolvedParams = use(params)
   
@@ -90,12 +92,27 @@ function ApplyContent({ params }) {
     return linkedinRegex.test(url)
   }
 
+  const validatePhoneNumber = (phone) => {
+    if (!phone) return false
+    const phoneRegex = /^[0-9]{9,13}$/
+    return phoneRegex.test(phone.replace(/\s+/g, ''))
+  }
+
+
   const handleChange = (e) => {
     const { name, value } = e.target
     setFormData({
       ...formData,
       [name]: value
     })
+
+    if (touched[name] || errors[name]) {
+      const error = validateField(name, value)
+      setErrors(prev => ({
+        ...prev,
+        [name]: error
+      }))
+    }
 
     if (name === 'email') {
       setEmailValid(value.trim() !== '' && validateEmail(value))
@@ -104,6 +121,20 @@ function ApplyContent({ params }) {
     if (name === 'linkedin_link') {
       setLinkedinValid(value.trim() !== '' && validateLinkedIn(value))
     }
+  }
+
+  const handleBlur = (e) => {
+    const { name, value } = e.target
+    setTouched(prev => ({
+      ...prev,
+      [name]: true
+    }))
+
+    const error = validateField(name, value)
+    setErrors(prev => ({
+      ...prev,
+      [name]: error
+    }))
   }
 
   const handlePhotoChange = (e) => {
@@ -136,6 +167,74 @@ function ApplyContent({ params }) {
     return job.application_form.fields.find(f => f.key === key)
   }
 
+  const getFieldLabel = (key) => {
+    const field = getFieldConfig(key)
+    if (field?.label) return field.label
+    
+    const labels = {
+      full_name: 'Full name',
+      email: 'Email',
+      phone_number: 'Phone number',
+      date_of_birth: 'Date of birth',
+      domicile: 'Domicile',
+      gender: 'Gender',
+      linkedin_link: 'LinkedIn link',
+      photo_profile: 'Photo profile'
+    }
+    return labels[key] || key
+  }
+
+  const validateField = (key, value) => {
+    if (!isFieldEnabled(key)) {
+      return null
+    }
+
+    if (isFieldRequired(key)) {
+      if (key === 'photo_profile') {
+        if (!profilePhoto) {
+          return 'Photo profile is required'
+        }
+      } else if (key === 'email') {
+        if (!value || value.trim() === '') {
+          return 'Email is required'
+        }
+        if (!validateEmail(value)) {
+          return 'Please enter a valid email address'
+        }
+      } else if (key === 'linkedin_link') {
+        if (!value || value.trim() === '') {
+          return 'LinkedIn link is required'
+        }
+        if (!validateLinkedIn(value)) {
+          return 'Please enter a valid LinkedIn URL (e.g., https://linkedin.com/in/username)'
+        }
+      } else if (key === 'phone_number') {
+        if (!value || value.trim() === '') {
+          return 'Phone number is required'
+        }
+        if (!validatePhoneNumber(value)) {
+          return 'Please enter a valid phone number (9-13 digits)'
+        }
+      } else {
+        if (!value || value.toString().trim() === '') {
+          return `${getFieldLabel(key)} is required`
+        }
+      }
+    } else {
+      if (key === 'email' && value && !validateEmail(value)) {
+        return 'Please enter a valid email address'
+      }
+      if (key === 'linkedin_link' && value && !validateLinkedIn(value)) {
+        return 'Please enter a valid LinkedIn URL (e.g., https://linkedin.com/in/username)'
+      }
+      if (key === 'phone_number' && value && !validatePhoneNumber(value)) {
+        return 'Please enter a valid phone number (9-13 digits)'
+      }
+    }
+
+    return null
+  }
+
   const isFieldRequired = (key) => {
     if (!job?.application_form?.fields || !Array.isArray(job.application_form.fields) || job.application_form.fields.length === 0) {
       const defaultRequired = ['full_name', 'email', 'phone_number', 'date_of_birth', 'domicile', 'gender', 'linkedin_link']
@@ -161,46 +260,41 @@ function ApplyContent({ params }) {
   const handleSubmit = async (e) => {
     e.preventDefault()
     
-    let requiredFields = []
-    
-    if (job?.application_form?.fields && job.application_form.fields.length > 0) {
-      requiredFields = job.application_form.fields
-        .filter(field => {
-          if (!field.validation) return false
-          return field.validation.required === true
-        })
-        .map(field => ({
-          key: field.key,
-          label: field.label || field.key
-        }))
-    } else if (!job?.application_form) {
-      requiredFields = [
-        { key: 'full_name', label: 'Full name' },
-        { key: 'email', label: 'Email' },
-        { key: 'phone_number', label: 'Phone number' },
-        { key: 'date_of_birth', label: 'Date of birth' },
-        { key: 'domicile', label: 'Domicile' },
-        { key: 'gender', label: 'Gender' },
-        { key: 'linkedin_link', label: 'LinkedIn link' }
-      ]
-    }
+    const enabledFields = job?.application_form?.fields 
+      ? job.application_form.fields.map(f => f.key)
+      : ['full_name', 'email', 'phone_number', 'date_of_birth', 'domicile', 'gender', 'linkedin_link', 'photo_profile']
 
-    const missingFields = requiredFields.filter(field => {
-      if (field.key === 'photo_profile') {
-        const value = profilePhoto
-        return !value
+    const newErrors = {}
+    let hasErrors = false
+
+    enabledFields.forEach(key => {
+      let value = formData[key]
+      if (key === 'photo_profile') {
+        value = profilePhoto
       }
-      const value = formData[field.key]
-      if (value === undefined || value === null) return true
-      if (typeof value === 'string' && value.trim() === '') return true
-      return false
+      
+      const error = validateField(key, value)
+      if (error) {
+        newErrors[key] = error
+        hasErrors = true
+      }
     })
 
-    if (missingFields.length > 0) {
+    setTouched(prev => {
+      const newTouched = { ...prev }
+      enabledFields.forEach(key => {
+        newTouched[key] = true
+      })
+      return newTouched
+    })
+
+    setErrors(newErrors)
+
+    if (hasErrors) {
       toast({
         variant: "destructive",
-        title: "Please fill all required fields",
-        description: `Missing: ${missingFields.map(f => f.label || f.key).join(', ')}`,
+        title: "Please fix the errors in the form",
+        description: "Some fields have validation errors. Please check and correct them.",
       })
       return
     }
@@ -319,7 +413,7 @@ function ApplyContent({ params }) {
               </Label>
               <div className="flex items-start gap-6">
                 <div className="flex flex-col items-center">
-                  <div className="w-24 h-24 rounded-full bg-gray-200 border-2 border-gray-300 overflow-hidden flex items-center justify-center">
+                  <div className={`w-24 h-24 rounded-full bg-gray-200 border-2 overflow-hidden flex items-center justify-center ${errors.photo_profile && touched.photo_profile ? 'border-red-500' : 'border-gray-300'}`}>
                     {photoPreview ? (
                       <Image
                         src={photoPreview}
@@ -342,7 +436,28 @@ function ApplyContent({ params }) {
                     ref={fileInputRef}
                     type="file"
                     accept="image/*"
-                    onChange={handlePhotoChange}
+                    onChange={(e) => {
+                      handlePhotoChange(e)
+                      if (touched.photo_profile || errors.photo_profile) {
+                        const file = e.target.files?.[0]
+                        const error = validateField('photo_profile', file)
+                        setErrors(prev => ({
+                          ...prev,
+                          photo_profile: error
+                        }))
+                      }
+                    }}
+                    onBlur={() => {
+                      setTouched(prev => ({
+                        ...prev,
+                        photo_profile: true
+                      }))
+                      const error = validateField('photo_profile', profilePhoto)
+                      setErrors(prev => ({
+                        ...prev,
+                        photo_profile: error
+                      }))
+                    }}
                     className="hidden"
                   />
                   <Button
@@ -355,6 +470,9 @@ function ApplyContent({ params }) {
                   </Button>
                 </div>
               </div>
+              {errors.photo_profile && touched.photo_profile && (
+                <p className="mt-1 text-sm text-red-600">{errors.photo_profile}</p>
+              )}
             </div>
           )}
 
@@ -375,8 +493,12 @@ function ApplyContent({ params }) {
                 placeholder="Enter your full name"
                 value={formData.full_name}
                 onChange={handleChange}
-                className="mt-1"
+                onBlur={handleBlur}
+                className={`mt-1 ${errors.full_name && touched.full_name ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
               />
+              {errors.full_name && touched.full_name && (
+                <p className="mt-1 text-sm text-red-600">{errors.full_name}</p>
+              )}
             </div>
           )}
 
@@ -393,10 +515,34 @@ function ApplyContent({ params }) {
               <div className="mt-1">
                 <DatePicker
                   value={formData.date_of_birth}
-                  onChange={(value) => setFormData({ ...formData, date_of_birth: value })}
+                  onChange={(value) => {
+                    setFormData({ ...formData, date_of_birth: value })
+                    if (touched.date_of_birth || errors.date_of_birth) {
+                      const error = validateField('date_of_birth', value)
+                      setErrors(prev => ({
+                        ...prev,
+                        date_of_birth: error
+                      }))
+                    }
+                  }}
+                  onBlur={() => {
+                    setTouched(prev => ({
+                      ...prev,
+                      date_of_birth: true
+                    }))
+                    const error = validateField('date_of_birth', formData.date_of_birth)
+                    setErrors(prev => ({
+                      ...prev,
+                      date_of_birth: error
+                    }))
+                  }}
                   placeholder="Select your date of birth"
+                  className={errors.date_of_birth && touched.date_of_birth ? 'border-red-500' : ''}
                 />
               </div>
+              {errors.date_of_birth && touched.date_of_birth && (
+                <p className="mt-1 text-sm text-red-600">{errors.date_of_birth}</p>
+              )}
             </div>
           )}
 
@@ -418,6 +564,7 @@ function ApplyContent({ params }) {
                     value="Female"
                     checked={formData.gender === 'Female'}
                     onChange={handleChange}
+                    onBlur={handleBlur}
                     {...(isFieldRequired('gender') && { required: true })}
                     className="w-4 h-4 text-teal-600"
                   />
@@ -430,12 +577,16 @@ function ApplyContent({ params }) {
                     value="Male"
                     checked={formData.gender === 'Male'}
                     onChange={handleChange}
+                    onBlur={handleBlur}
                     {...(isFieldRequired('gender') && { required: true })}
                     className="w-4 h-4 text-teal-600"
                   />
                   <span>He/him (Male)</span>
                 </label>
               </div>
+              {errors.gender && touched.gender && (
+                <p className="mt-1 text-sm text-red-600">{errors.gender}</p>
+              )}
             </div>
           )}
 
@@ -452,10 +603,34 @@ function ApplyContent({ params }) {
               <div className="mt-1">
                 <DomicileDropdown
                   value={formData.domicile}
-                  onChange={(value) => setFormData({ ...formData, domicile: value })}
+                  onChange={(value) => {
+                    setFormData({ ...formData, domicile: value })
+                    if (touched.domicile || errors.domicile) {
+                      const error = validateField('domicile', value)
+                      setErrors(prev => ({
+                        ...prev,
+                        domicile: error
+                      }))
+                    }
+                  }}
+                  onBlur={() => {
+                    setTouched(prev => ({
+                      ...prev,
+                      domicile: true
+                    }))
+                    const error = validateField('domicile', formData.domicile)
+                    setErrors(prev => ({
+                      ...prev,
+                      domicile: error
+                    }))
+                  }}
                   placeholder="Choose your domicile"
+                  className={errors.domicile && touched.domicile ? 'border-red-500' : ''}
                 />
               </div>
+              {errors.domicile && touched.domicile && (
+                <p className="mt-1 text-sm text-red-600">{errors.domicile}</p>
+              )}
             </div>
           )}
 
@@ -481,9 +656,13 @@ function ApplyContent({ params }) {
                   placeholder="81XXXXXXXXX"
                   value={formData.phone_number}
                   onChange={handleChange}
-                  className="flex-1"
+                  onBlur={handleBlur}
+                  className={`flex-1 ${errors.phone_number && touched.phone_number ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
                 />
               </div>
+              {errors.phone_number && touched.phone_number && (
+                <p className="mt-1 text-sm text-red-600">{errors.phone_number}</p>
+              )}
             </div>
           )}
 
@@ -505,9 +684,13 @@ function ApplyContent({ params }) {
                 placeholder="Enter your email address"
                 value={formData.email}
                 onChange={handleChange}
-                className="mt-1"
+                onBlur={handleBlur}
+                className={`mt-1 ${errors.email && touched.email ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
               />
-              {emailValid && (
+              {errors.email && touched.email && (
+                <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+              )}
+              {emailValid && !errors.email && (
                 <div className="mt-2 flex items-center gap-2 text-teal-600">
                   <CheckCircle className="h-5 w-5" />
                   <span className="text-sm">Email address found</span>
@@ -534,9 +717,13 @@ function ApplyContent({ params }) {
                 placeholder="https://linkedin.com/in/username"
                 value={formData.linkedin_link}
                 onChange={handleChange}
-                className="mt-1"
+                onBlur={handleBlur}
+                className={`mt-1 ${errors.linkedin_link && touched.linkedin_link ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
               />
-              {linkedinValid && (
+              {errors.linkedin_link && touched.linkedin_link && (
+                <p className="mt-1 text-sm text-red-600">{errors.linkedin_link}</p>
+              )}
+              {linkedinValid && !errors.linkedin_link && (
                 <div className="mt-2 flex items-center gap-2 text-teal-600">
                   <CheckCircle className="h-5 w-5" />
                   <span className="text-sm">URL address found</span>

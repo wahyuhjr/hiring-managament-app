@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react"
 import { indonesiaRegions } from "@/data/indonesia-regions"
 import { cn } from "@/lib/utils"
 
-export function DomicileDropdown({ value, onChange, placeholder, className }) {
+export function DomicileDropdown({ value, onChange, placeholder, className, onBlur }) {
   const [isOpen, setIsOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const dropdownRef = useRef(null)
@@ -49,6 +49,7 @@ export function DomicileDropdown({ value, onChange, placeholder, className }) {
           value={value || ""}
           placeholder={placeholder}
           onClick={() => setIsOpen(!isOpen)}
+          onBlur={onBlur}
           className={cn(
             "flex h-10 w-full rounded-md border bg-white px-3 py-2 text-sm",
             "ring-offset-white placeholder:text-gray-500",

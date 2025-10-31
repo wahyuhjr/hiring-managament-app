@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react"
 import { Calendar, ChevronLeft, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-export function DatePicker({ value, onChange, placeholder, className }) {
+export function DatePicker({ value, onChange, placeholder, className, onBlur }) {
   const [isOpen, setIsOpen] = useState(false)
   const [internalMonth, setInternalMonth] = useState(() => {
     if (value) {
@@ -148,6 +148,7 @@ export function DatePicker({ value, onChange, placeholder, className }) {
           value={value ? formatDate(value) : ""}
           placeholder={placeholder}
           onClick={() => setIsOpen(!isOpen)}
+          onBlur={onBlur}
           className={cn(
             "flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 pl-10 py-2 text-sm",
             "ring-offset-white placeholder:text-gray-500",
